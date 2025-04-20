@@ -68,7 +68,7 @@ def test_line_comments():
 
 def test_comments():
     in_lines = '''
-    set workdir "./#build"
+    set workdir "./#build" # Comment
     '''
     test_in = io.StringIO(in_lines)
     scanner = scan_deps.GretlScanner(test_in).parse()
