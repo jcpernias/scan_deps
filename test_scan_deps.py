@@ -74,12 +74,19 @@ def test_comments():
     open  "../*c.csv" # Comment
     open /* Comment */ /* Another */  "../d.csv" # Comment
     open /* /* Comment */  "../e.csv" # Comment
+    /*
+    open "../f.csv"
+    */
+    open "../g.csv"
+    /*
+    */  open "../h.csv"
     '''
     test_in = io.StringIO(in_lines)
     scanner = scan_deps.GretlScanner(test_in).parse()
 
     assert scanner.workdir == './#build'
-    assert scanner.datafiles == { 'a.csv', 'b.csv', '*c.csv', 'd.csv', 'e.csv' }
+    assert scanner.datafiles == { 'a.csv', 'b.csv', '*c.csv', 'd.csv',
+                                  'e.csv' , 'g.csv', 'h.csv' }
 
 
 

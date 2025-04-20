@@ -17,7 +17,8 @@ class GretlScanner:
     COMMENT_PATTERN = re.compile(r'''
     ("[^"]*")|                  # String
     (/\*(?:[^*]|\*(?!/))*\*/)|  # Delimited comment
-    (\#.*$)                     # Line comment
+    (\#.*$)|                    # Line comment
+    (/\*(?:[^*]|\*(?!/))*$)     # Incomplete delimited comment
     ''', re.X)
     def __init__(self, source):
         self.source = source
@@ -25,8 +26,17 @@ class GretlScanner:
         self.datafiles = set()
         self.outfiles = set()
         self.figfiles = set()
+        self.comment_block = False
 
     def delete_comments(self, line):
+        if self.comment_block:
+            parts = line.split('*/', maxsplit = 1)
+            if len(parts) == 1:
+                return('', False)
+            else:
+                self.comment_block = False
+                line = parts[1]
+
         start = 0
         end = 0
         parts = []
@@ -46,6 +56,11 @@ class GretlScanner:
             elif mobj[3]:
                 end = mobj.start()
                 parts.append(line[start:end])
+                return (' '.join(parts), False)
+            elif mobj[4]:
+                end = mobj.start()
+                parts.append(line[start:end])
+                self.comment_block = True
                 return (' '.join(parts), False)
 
         line = ' '.join(parts).rstrip()
