@@ -1,0 +1,105 @@
+#+SETUP: indent
+
+* Gretl
+
+- Una instrucción se puede extender en una línea adicional si el
+  último carácter no blanco es =\=.
+
+- Dos tipos de comentarios: desde =#= hasta el final de la línea o
+  entre =/*= y =*/=.
+
+- Las cadenas van encerradas en dobles comillas. Se pueden usar
+  comillas dentro de las cadenas con =\"=. No parece que puedan
+  escribirse cadenas en varias líneas.
+
+- Algunas instrucciones admiten opciones que empiezan con =--=. Si
+  esas opciones aceptan un parámetro, éste se separa de la opción con
+  un único =.
+
+- Los nombres de archivo pueden ir encerrados entre comillas o no (si
+  no contienen blancos, supongo).
+
+- Algunas construcciones válidas
+  #+begin_example
+  str = "\"Hola\" /* no comment */ # Another no comment"
+  str
+
+  str1 = "Hola"
+  str2 = "Adios"
+
+  print str1 \
+    str2
+
+  matrix A = {2; 3; 4; 5}
+  print A --range=1:3
+
+  outfile "tmp.txt"
+  end outfile
+
+  #+end_example
+
+Patrones a buscar:
+
+- Directorio de trabajo:
+  #+begin_example
+    set workdir <dir>
+  #+end_example
+
+- Lee datos:
+  #+begin_example
+    open <file>
+  #+end_example
+
+- Guarda gráficos:
+  #+begin_example
+    gnuplot [other stuff] --output=<file>
+  #+end_example
+
+- Guarda salidas:
+  #+begin_example
+    outfile <file>
+  #+end_example
+
+
+Funcionamiento:
+
+- Cada instrucción está en una línea diferente.
+
+- Comentarios de una línea: Todos los caracteres a partir de =#=. El
+  carácter de inicio no debe de formar parte de una cadena o de un
+  bloque de comentarios.
+
+- Bloque de comentario: comienza con los caracteres =/*= y finaliza con =*/=.
+
+- Continuación de líneas: Una línea física puede acabar en =\= con
+  espacios adicionales al final, en cuyo caso la instrucción continua
+  en la siguiente línea física. El carácter de continuación no puede
+  estar en un comentario.
+
+Solución más simple (fallará con programas válidos):
+
+A. No se admiten bloques de comentarios.
+
+B. Leer una línea física.
+
+C. Si hay comentario eliminarlo.
+
+D. Si aparece el carácter de final de línea:
+
+   1. Eliminarlo.
+
+   2. Leer la línea siguiente y añadirla a lo que ya se había leído.
+
+   3. Volver a C.
+
+E. Comprobar si es una de las instrucciones de las que hay que extraer
+   información.
+
+
+
+
+# Local Variables:
+# ispell-local-dictionary: "spanish"
+# End:
+
+#  LocalWords:  Gretl
