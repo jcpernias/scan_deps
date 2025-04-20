@@ -69,11 +69,17 @@ def test_line_comments():
 def test_comments():
     in_lines = '''
     set workdir "./#build" # Comment
+    open /* Comment */  "../a.csv" # Comment
+    open /* Comment #  */  "../b.csv" # Comment
+    open  "../*c.csv" # Comment
+    open /* Comment */ /* Another */  "../d.csv" # Comment
+    open /* /* Comment */  "../e.csv" # Comment
     '''
     test_in = io.StringIO(in_lines)
     scanner = scan_deps.GretlScanner(test_in).parse()
 
     assert scanner.workdir == './#build'
+    assert scanner.datafiles == { 'a.csv', 'b.csv', '*c.csv', 'd.csv', 'e.csv' }
 
 
 

@@ -14,7 +14,11 @@ class GretlScanner:
     (?:\s|$))                   # a space or end of line
     ''', re.X)
 
-    COMMENT_PATTERN = re.compile('"[^"]*"|(#.*$)')
+    COMMENT_PATTERN = re.compile(r'''
+    ("[^"]*")|                  # String
+    (/\*(?:[^*]|\*(?!/))*\*/)|  # Delimited comment
+    (\#.*$)                     # Line comment
+    ''', re.X)
     def __init__(self, source):
         self.source = source
         self.workdir = ""
@@ -23,17 +27,28 @@ class GretlScanner:
         self.figfiles = set()
 
     def delete_comments(self, line):
-        pos = 0
+        start = 0
+        end = 0
+        parts = []
         while True:
-            mobj = GretlScanner.COMMENT_PATTERN.search(line, pos)
+            mobj = GretlScanner.COMMENT_PATTERN.search(line, start)
             if not mobj:
+                parts.append(line[start:])
                 break
-            if not mobj[1]:
-                pos = mobj.end()
-            else:
-                return (line[:mobj.start()], False)
+            if mobj[1]:
+                end = mobj.end()
+                parts.append(line[start:end])
+                start = end
+            elif mobj[2]:
+                end = mobj.start()
+                parts.append(line[start:end])
+                start = mobj.end()
+            elif mobj[3]:
+                end = mobj.start()
+                parts.append(line[start:end])
+                return (' '.join(parts), False)
 
-        line = line.rstrip()
+        line = ' '.join(parts).rstrip()
         line_cont = len(line) and line[-1] == '\\'
         if line_cont:
             line = line[:-1] + ' '
