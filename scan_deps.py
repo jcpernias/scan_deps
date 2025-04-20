@@ -10,7 +10,7 @@ class GretlScanner:
     (?:set\s+(workdir)|(open)|(outfile)|(gnuplot)) # Command
     \s+                         # Some spaces
     (?:(?(4).*--output=))       # gnuplot extras
-    (?:"([^"\n]+)"|([^"\s]+)    # name without quotes
+    (?:"([^"]+)"|([^"\s]+)      # name without quotes
     (?:\s|$))                   # a space or end of line
     ''', re.X)
 
