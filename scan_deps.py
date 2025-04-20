@@ -21,6 +21,17 @@ class GretlScanner:
         self.outfiles = set()
         self.figfiles = set()
 
+    def delete_comments(self, line):
+        parts = line.split('#', maxsplit = 1)
+        if len(parts) != 1:
+            return (parts[0].rstrip(), False)
+
+        line = line.rstrip()
+        line_cont = len(line) and line[-1] == '\\'
+        if line_cont:
+            line = line[:-1] + ' '
+        return (line, line_cont)
+
     def lines(self):
         result = ''
         while True:
@@ -30,22 +41,13 @@ class GretlScanner:
                 return
 
             # Remove line comments
-            maybe_cont = True
-            parts = line.split('#', maxsplit = 1)
-            if len(parts) != 1:
-                line = parts[0]  # Drop comments
-                maybe_cont = False # No continuation if there are comments
-
-            # Strip trailing spaces
-            line = line.rstrip()
+            line, line_cont = self.delete_comments(line)
+            result += line
 
             # Check continuation line char
-            if not maybe_cont or not len(line) or line[-1] != '\\':
-                result += line
+            if not line_cont:
                 yield result
                 result = ''
-            else:
-                result += line[:-1]
 
     def parse_line(self, line):
         mobj = GretlScanner.GRETL_PATTERN.match(line)
