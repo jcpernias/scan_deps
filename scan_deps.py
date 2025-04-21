@@ -4,7 +4,28 @@ import re
 import os
 
 class GretlScanner:
-    """Search a Gretl script for dependencies"""
+    """Scans Gretl script files to identify file dependencies.
+
+    It detects:
+    - The working directory (`set workdir`)
+    - Input data files (`open`)
+    - Output files (`outfile`)
+    - Figure files generated with gnuplot (`gnuplot --output=`)
+
+    It also handles Gretl-style line and block comments and manages line
+    continuations.
+
+    Attributes:
+        source (iterable): Source of lines from the script file.
+        workdir (str): Current working directory in the script.
+        datafiles (set): Set of normalized paths to data input files.
+        outfiles (set): Set of normalized paths to output files.
+        figfiles (set): Set of normalized paths to figure files.
+        comment_block (bool): Flag for tracking multi-line comment blocks.
+
+    """
+
+    # Regex to match specific Gretl commands and extract file paths
     GRETL_PATTERN = re.compile(r'''
     ^\s*                        # Allow spaces
     (?:set\s+(workdir)|(open)|(outfile)|(gnuplot)) # Command
@@ -14,12 +35,14 @@ class GretlScanner:
     (?:\s|$))                   # a space or end of line
     ''', re.X)
 
+    # Regex to identify and optionally remove comments or strings
     COMMENT_PATTERN = re.compile(r'''
     ("[^"]*")|                  # String
     (/\*(?:[^*]|\*(?!/))*\*/)|  # Delimited comment
     (\#.*$)|                    # Line comment
     (/\*(?:[^*]|\*(?!/))*$)     # Incomplete delimited comment
     ''', re.X)
+
     def __init__(self, source):
         self.source = source
         self.workdir = ""
@@ -29,6 +52,15 @@ class GretlScanner:
         self.comment_block = False
 
     def delete_comments(self, line):
+        """Removes comments from a line of code.
+
+        Handles multi-line and single-line comments. Quoted strings
+        are preserved.
+
+        Returns a tuple: (cleaned_line, is_continuation)
+        """
+
+        # Handle multiple line comment blocks
         if self.comment_block:
             parts = line.split('*/', maxsplit = 1)
             if len(parts) == 1:
@@ -37,39 +69,48 @@ class GretlScanner:
                 self.comment_block = False
                 line = parts[1]
 
+        # Scan line
         start = 0
         end = 0
         parts = []
         while True:
             mobj = GretlScanner.COMMENT_PATTERN.search(line, start)
-            if not mobj:
+            if not mobj:        # No match in the rest of the line
                 parts.append(line[start:])
                 break
-            if mobj[1]:
+            if mobj[1]:         # Found a string
                 end = mobj.end()
                 parts.append(line[start:end])
                 start = end
-            elif mobj[2]:
+            elif mobj[2]:       # Found a delimited comment
                 end = mobj.start()
                 parts.append(line[start:end])
                 start = mobj.end()
-            elif mobj[3]:
+            elif mobj[3]:       # Found a line comment
                 end = mobj.start()
                 parts.append(line[start:end])
                 return (' '.join(parts), False)
-            elif mobj[4]:
+            elif mobj[4]:       # Found the start of a block comment
                 end = mobj.start()
                 parts.append(line[start:end])
                 self.comment_block = True
                 return (' '.join(parts), False)
 
         line = ' '.join(parts).rstrip()
+
+        # Check line continuation char
         line_cont = len(line) and line[-1] == '\\'
         if line_cont:
             line = line[:-1] + ' '
         return (line, line_cont)
 
     def lines(self):
+        """Generator function that yields logical lines.
+
+        Yields a str: A complete line of code after removing comments
+           and joining continued lines.
+        """
+
         result = ''
         while True:
             try:
@@ -87,15 +128,40 @@ class GretlScanner:
                 result = ''
 
     def parse_line(self, line):
+        """Parses a single logical line.
+
+        It uses the GRETL_PATTERN to identify known commands and
+        associated file paths.
+
+        Args: line (str): A logical line without comments.
+
+        Returns a tuple: (command, path) if matched, otherwise (None, None)
+        """
+
         mobj = GretlScanner.GRETL_PATTERN.match(line)
         if mobj is None:
             return (None, None)
         return tuple(x for x in mobj.groups() if x is not None)
 
     def norm_path(self, path):
+        """Normalizes file paths relative to current workdir.
+
+        Args:
+            path (str): A path from the script.
+
+        Returns a str: Normalized path.
+        """
         return os.path.normpath(os.path.join(self.workdir, path))
 
     def parse(self):
+        """Parses a Gretl script.
+
+        It scans the source and populate datafiles, outfiles, and figfiles.
+
+        Returns:
+            self: Allows for method chaining.
+        """
+
         for line in self.lines():
             match self.parse_line(line):
                 case ('workdir', path):
