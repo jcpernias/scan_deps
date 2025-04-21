@@ -43,7 +43,6 @@ def test_cont_lines():
     test_in = io.StringIO(in_lines)
     scanner = scan_deps.GretlScanner(test_in).parse()
 
-    assert scanner.workdir == './build'
     assert scanner.datafiles == { 'data/data.csv' }
     assert scanner.outfiles == { 'build/out.txt' }
     assert scanner.figfiles == { 'build/fig.pdf' }
@@ -60,7 +59,6 @@ def test_line_comments():
     test_in = io.StringIO(in_lines)
     scanner = scan_deps.GretlScanner(test_in).parse()
 
-    assert scanner.workdir == './build'
     assert scanner.datafiles == { 'data/data.csv' }
     assert scanner.outfiles == { 'build/out.txt' }
     assert scanner.figfiles == { 'build/fig.pdf' }
@@ -69,6 +67,7 @@ def test_line_comments():
 def test_comments():
     in_lines = '''
     set workdir "./#build" # Comment
+    open /* Comment */  "a.csv" # Comment
     open /* Comment */  "../a.csv" # Comment
     open /* Comment #  */  "../b.csv" # Comment
     open  "../*c.csv" # Comment
@@ -84,9 +83,9 @@ def test_comments():
     test_in = io.StringIO(in_lines)
     scanner = scan_deps.GretlScanner(test_in).parse()
 
-    assert scanner.workdir == './#build'
-    assert scanner.datafiles == { 'a.csv', 'b.csv', '*c.csv', 'd.csv',
-                                  'e.csv' , 'g.csv', 'h.csv' }
+    assert scanner.datafiles == { '#build/a.csv', 'a.csv', 'b.csv',
+                                  '*c.csv', 'd.csv', 'e.csv' , 'g.csv',
+                                  'h.csv' }
 
 
 

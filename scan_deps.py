@@ -17,7 +17,6 @@ class GretlScanner:
 
     Attributes:
         source (iterable): Source of lines from the script file.
-        workdir (str): Current working directory in the script.
         datafiles (set): Set of normalized paths to data input files.
         outfiles (set): Set of normalized paths to output files.
         figfiles (set): Set of normalized paths to figure files.
@@ -45,7 +44,6 @@ class GretlScanner:
 
     def __init__(self, source):
         self.source = source
-        self.workdir = ""
         self.datafiles = set()
         self.outfiles = set()
         self.figfiles = set()
@@ -143,15 +141,16 @@ class GretlScanner:
             return (None, None)
         return tuple(x for x in mobj.groups() if x is not None)
 
-    def norm_path(self, path):
+    def norm_path(self, workdir, path):
         """Normalizes file paths relative to current workdir.
 
         Args:
+            path (str): The current workdir.
             path (str): A path from the script.
 
         Returns a str: Normalized path.
         """
-        return os.path.normpath(os.path.join(self.workdir, path))
+        return os.path.normpath(os.path.join(workdir, path))
 
     def parse(self):
         """Parses a Gretl script.
@@ -162,16 +161,17 @@ class GretlScanner:
             self: Allows for method chaining.
         """
 
+        workdir = ''
         for line in self.lines():
             match self.parse_line(line):
                 case ('workdir', path):
-                    self.workdir = path
+                    workdir = path
                 case ('open', path):
-                    self.datafiles.add(self.norm_path(path))
+                    self.datafiles.add(self.norm_path(workdir, path))
                 case ('outfile', path):
-                    self.outfiles.add(self.norm_path(path))
+                    self.outfiles.add(self.norm_path(workdir, path))
                 case ('gnuplot', path):
-                    self.figfiles.add(self.norm_path(path))
+                    self.figfiles.add(self.norm_path(workdir, path))
         return self
 
 
